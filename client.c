@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -46,14 +47,45 @@ class Client {
     int clientSeqNum;
     int clientSocket;
     std::FILE* logFile;
+
 public:
-    Client() : clientSeqNum(1) {}
+    Client() : clientSeqNum(1), clientSocket(-1), logFile(nullptr) {
+        // Initialize clientSocket and logFile here
+        // Example: clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+        // logFile = fopen("logfile.txt", "w");
+    }
     ~Client() {
         close(clientSocket);
-        std::fclose(logFile);
+        if (logFile) {
+            std::fclose(logFile);
+        }
     }
-    // Place all the function definitions here
-    // For example:
+    
+    void connectToServer() {
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(SERVER_PORT);
+        
+        if (inet_pton(AF_INET, SERVER_ADDRESS, &serv_addr.sin_addr) <= 0) {
+            std::cerr << "inet_pton() failed\n";
+            exit(1);
+        }
+
+        if (connect(clientSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+            std::cerr << "connect() failed\n";
+            exit(1);
+        }
+    }
+    
+    void sendMessage(const std::string& msg) {
+        // Send message to server
+    }
+    
+    std::string receiveMessage() {
+        // Receive message from server
+        return "";
+    }
+
     void generateSendingTime(std::string& timeStr) {
         // Generate sending time logic here
     }
@@ -63,6 +95,7 @@ public:
 
 int main() {
     Client client;
+    client.connectToServer();
     // Use client object to call functions and handle operations
     // ...
     return 0;

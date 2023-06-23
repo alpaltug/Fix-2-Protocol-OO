@@ -3,7 +3,10 @@
 #include <string>
 #include <ctime>
 #include <memory>
-#include <netinet/in.h>
+#include <cstdio> // for fopen, fclose
+#include <sys/socket.h> // for socket functions
+#include <netinet/in.h> // for sockaddr_in
+#include <arpa/inet.h> // for htons, htonl, ...
 
 #define MAX_PENDING_REQUESTS 100
 #define MAX_MESSAGES 100
@@ -32,9 +35,16 @@ class ClientInfo {
 
 public:
     ClientInfo(int clientId, std::string compId)
-    : clientId(clientId), compId(compId), logFile(std::unique_ptr<FILE, decltype(&fclose)>(nullptr, &fclose)) {}
+    : clientId(clientId), compId(compId), logFile(std::unique_ptr<FILE, decltype(&fclose)>(nullptr, &fclose)) {
+        // Initialize logFile with the proper file
+        // Example: logFile.reset(fopen("logfile.txt", "w"));
+    }
 
-    // Similar functions and data members go here
+    // Add additional member functions as necessary
+    // For example:
+    // int getClientId() const { return clientId; }
+    // void setClientId(int id) { clientId = id; }
+    // ...
 };
 
 class Server {
@@ -49,23 +59,50 @@ class Server {
     int marketDataCount;
 
 public:
-    Server(int serverSocket, int serverSeqNum)
-    : serverSocket(serverSocket), serverSeqNum(serverSeqNum) {
+    Server(int port, int serverSeqNum)
+    : serverSeqNum(serverSeqNum) {
         clientList.reserve(MAX_PENDING_REQUESTS);
         buyOrders.reserve(MAX_ORDERS);
         sellOrders.reserve(MAX_ORDERS);
         marketDataList.reserve(MAX_ORDERS);
         sentMessages.reserve(MAX_MESSAGES);
+
+        // Create socket
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (serverSocket < 0) {
+            std::cerr << "Cannot open socket\n";
+            exit(1);
+        }
+
+        // Bind socket
+        sockaddr_in serv_addr;
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(port);
+        serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        if (bind(serverSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+            std::cerr << "Cannot bind socket\n";
+            exit(1);
+        }
+
+        // Listen on socket
+        if (listen(serverSocket, MAX_PENDING_REQUESTS) < 0) {
+            std::cerr << "Cannot listen on socket\n";
+            exit(1);
+        }
     }
 
-    // Similar functions go here
+    // Add additional member functions as necessary
+    // For example:
+    // void acceptConnections() {...}
+    // void handleClient(ClientInfo& client) {...}
+    // ...
 };
 
 int main() {
-    int serverSocket;
+    int port = 8080; // Change as per your needs
     int serverSeqNum = 1;
 
-    Server server(serverSocket, serverSeqNum);
+    Server server(port, serverSeqNum);
     // Other operations
 
     return 0;
